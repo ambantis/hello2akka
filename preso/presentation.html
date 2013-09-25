@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title></title>
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<link rel="stylesheet" href="css/reveal.min.css">
+		<link rel="stylesheet" href="css/theme/default.css"   id="theme">
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<div class="slides">
+
+				<section>
+					<h2>Let's Play with Play!</h2>
+          <p>There's a lot of buz about Playframework<br>Let's find out why</p>
+				</section>
+
+        <section>
+          <section>
+            <h2>What is Play?</h2>
+            <p>
+              Play is a "high-velocity" web framework that is asynchronous and developer-friendly.
+            </p>
+          </section>
+          <section>
+            Play is asynchronous because it is built upon Netty (a web server implementing Java NIO.2)
+            and Akka. Asynchronous means that the application resources are not tied up waiting for
+            a response from IO or web service calls.
+          </section>
+
+          <section>
+            Play is developer-friendly because <em>everything</em> is static, which means the compiler
+            catches errors in the entire application, not just the java/scala code. Play also has lots
+            of other cool features.
+          </section>
+
+        </section>
+
+        <section>
+          <section>
+            <h2>Getting Setup with the code demos</h2>
+          </section>
+
+          <section>
+            <h2>sbt</h2>
+            <p>
+              SBT is the build tool of scala. It comes built-in with Playframework, but if you want
+              to run the code samples at <a href="https://www.github.com/ambantis/hello2akka">
+              www.github/ambantis/hello2Akka</a>, then download it at:
+            </p>
+            <br>
+            <a href="http://www.scala-sbt.org">www.scala-sbt.org</a>
+          </section>
+
+          <section>
+            <h2>Playframework</h2>
+            <p>
+              Playframework comes as a single zip file that runs on all platforms.  it at:
+            </p>
+            <br>
+             <a href="http://www.playframework.com/">playframework.com</a>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h2>Concurrency, Java-style</h2>
+            <p>All About Monica and Ryan</p>
+          </section>
+
+          <section>
+            <p>Monica and Ryan have a joint checking account. This is what it looks like:</p>
+            <pre><code data-trim>
+    public class BankAccount {
+      private int balance;
+
+      public BankAccount() {
+        balance = 100;
+      }
+
+      public void withdraw(int amount) {
+        balance -= amount;
+      }
+
+      public int getBalance() {
+        return balance;
+      }
+    }
+            </code></pre>
+          </section>
+
+          <section>
+            <p>
+              Monica and Ryan are constantly causing their account to be overdrawn, because even though
+              they check the balance before making a withdrawal, they are threads accessing a state
+              at the same time.
+            </p>
+          </section>
+
+          <section>
+            <p>
+              Go ahead and try it at the command line. If you have sbt installed, then at the command
+              line run RyanAndMonicaJob
+            </p>
+
+            <pre><code data-trim>
+  % sbt "runMain threads.RyanAndMonicaJob"
+            </code></pre>
+
+            <p>
+              And here's the output you might get:
+            </p>
+
+            <pre><code data-trim>
+    Monica says, 'I found something ...'
+    Monica is going to sleep
+    Sorry, not enough for Ryan
+    Sorry, not enough for Ryan
+    Sorry, not enough for Ryan
+    Sorry, not enough for Ryan
+    Sorry, not enough for Ryan
+    Monica has woken up.
+    Monica completes the withdrawal
+    Overdrawn!
+            </code></pre>
+          </section>
+
+          <section>
+            <p>
+              There's ways to deal with concurrency in thread-based systems, but all of them are
+              complicated.
+            </p>
+            <br>
+            <p>
+              Wouldn't it be great if the developer could spend more time creating new features and
+              enhancing the user experience rather than dealing with concurrency?
+            </p>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h2>Akka Actors to the Rescue!</h2>
+          </section>
+
+          <section>
+            <p>With Akka, Monica and Ryan aren't threads, they're actors. Actors can't access state
+            of other actors, all they can do is pass messages to other actors. The messages contain
+            immutable data structures (cannot be changed).
+            </p>
+          </section>
+
+          <section>
+            <h2>Everything's locked down with Akka</h2>
+            <p>
+              There is no shared state, so there is no need for locks, synchronization, and no
+              concurrency bugs to track down.
+            </p>
+            <br>
+            <p>Here's the list of messages the Akka bank will accept:</p>
+            <pre><code data-trim>
+    object BankAccount {
+      case class Withdraw(amount: Int)
+      object Balance
+      object ChaChing
+      object NSF
+    }
+            </code></pre>
+
+            <p>
+              Only the BankAccount object can alter state. Other actors can send messages requesting
+              that state be changed, but the bank processes those messages, not Monica and Rynan
+            </p>
+          </section>
+
+          <section>
+            <p>
+              Go ahead and try it at the command line. If you have sbt installed, then at the command
+              line run the actor demo:
+            </p>
+
+            <pre><code data-trim>
+    % sbt "runMain actordemo.Boot"
+            </code></pre>
+
+            <p>
+              And here's the output you might get:
+            </p>
+
+            <pre><code data-trim>
+    Ryan says, 'It costs 1 dollar?!?, I'll buy it, but first I'll rest'
+    Bank says, 'Ryan asks to withdraw 1'
+    Bank says, 'The shoppers have a zero balance, time to go back to work.'
+            </code></pre>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h2>So, What does this all mean?</h2>
+            <p>Play! only runs on a handful of threads.</p>
+          </section>
+
+          <section>
+            <p>
+              Play! doesn't use thread-pools. If your web server has three cores, then Play! uses
+              three threads for the application.
+            </p>
+            <br>
+            <p>It's that simple!</p>
+          </section>
+        </section>
+
+        <section>
+          <h2>Wait a minute !?!</h2>
+          <p>
+            If Play! only uses a couple of threads, wouldn't blocking I/O bring the server to
+            it's knees?
+          </p>
+        </section>
+
+        <section>
+          <section>
+            <h2>Akka Futures to the rescue!</h2>
+          </section>
+          <section>
+            <p>
+              When Play encounters an expensive computation or I/O, it places the future results
+              of that computation or I/O in a socket and keeps on going. When the future has a value,
+              then there is a callback to redeem the promise of a future value for a real value.
+            </p>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h2>Let's run some Akka Future code!</h2>
+          </section>
+
+          <section>
+            <p>In the code snippet below, </p>
+
+            <pre><code data-trim>
+
+    object Boot extends App {
+
+      val fiveHundred = 500
+      implicit val timeout = Timeout(5 seconds)
+
+      println("this is before the expensive computation")
+
+      val futureResult: Future[(Int, Double)] = future {
+        getNaturalNumbersWith(divisors = fiveHundred)
+      }
+
+      futureResult.map { x =>
+        println(s"first triangle # with $fiveHundred divisors = " +
+        s"${x._1} with a time of ${x._2} secs")
+      }
+
+      println("this is after the expensive computation")
+    }
+            </code></pre>
+            <p>
+              we have a println statement before and after the expensive computation.
+            </p>
+
+          </section>
+
+          <section>
+            <p>If you run it from the command line:</p>
+
+            <pre><code data-trim>
+              % sbt "runMain futuredemo.Boot
+            </code></pre>
+            <p>You'll see output something like this:</p>
+
+            <pre><code data-trim>
+    this is before the expensive computation
+    this is after the expensive computation
+    [success] Total time: 0 s, completed Sep 25, 2013 12:18:24 AM
+    > first triangle # with 500 divisors = 76576500 with a time of 0.99 secs
+            </code></pre>
+            <p>The result occurs after the program finishes running!</p>
+          </section>
+
+          <section>
+            <p>
+              In a Play! controller, the web page results will not display until all the I/O is
+              completed. So, from the perspective of the client, the application is synchronous, but
+              application resources are never tied up waiting for I/O.
+            </p>
+          </section>
+        </section>
+
+        <section>
+          <p>Be sure to check out the source code at
+            <a href="https://www.github.com/ambantis/hello2akka">
+              https://www.github.com/ambantis/hello2akka</a></p>
+        </section>
+
+      </div>
+
+    </div>
+
+
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.min.js"></script>
+
+		<script>
+
+			Reveal.initialize({
+				transition: 'linear'
+			});
+
+		</script>
+
+	</body>
+</html>
